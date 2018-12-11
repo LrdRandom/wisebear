@@ -9,7 +9,7 @@ import com.saidinit.random.wisebear.domain.Round;
 public interface WisebearService {
 	
 	Info getInfo();
-	
-	Round calculateRound(List<Player> players);
+
+	Round calculateRound(List<Player> players, int nextRound);
 
 }
