@@ -1,5 +1,26 @@
 package com.saidinit.random.wisebear.domain;
 
-public class Judge {
+import java.util.List;
 
+import com.saidinit.random.wisebear.model.LanguageModel;
+
+import lombok.Builder;
+import lombok.Data;
+
+
+/**
+ * Class for judges. Judges should state how many languages they speak, should be helpful for queries on players.
+ * */
+@Data
+@Builder
+public class Judge {
+	
+	private int id;
+	private String name;
+	private String surname;
+	private String country;
+	private List<LanguageModel> spokenLanguages;
+	private List<Penalitiy> penalties;
+	private int level;
+	
 }

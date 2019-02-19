@@ -4,11 +4,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.saidinit.random.wisebear.domain.Info;
 import com.saidinit.random.wisebear.domain.Match;
 import com.saidinit.random.wisebear.domain.Player;
 import com.saidinit.random.wisebear.domain.Round;
 
+import lombok.AllArgsConstructor;
+
+@Service
+@AllArgsConstructor
 public class WisebearServiceImpl implements WisebearService {
 
 	// we are going to need a repository here, probably

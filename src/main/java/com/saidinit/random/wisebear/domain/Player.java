@@ -4,12 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
 
+import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Player on a tournament. Includes functions to calculate who is on top of standings, through compare. The idea is to have a List of players and use ordering.
+ * */
 @Data
+@Builder
 public class Player implements Comparable<Player>{
 
-	private int dci;
+	private int id;
+	private String dci;
 	private String name;
 	private int tableNumber;
 	private List<Player> oponents;
