@@ -3,6 +3,7 @@ package com.saidinit.random.wisebear.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.stereotype.Service;
 
@@ -13,100 +14,153 @@ import com.saidinit.random.wisebear.domain.Round;
 
 import lombok.AllArgsConstructor;
 
+/**
+ * Wisebear functionality of creating matches and tournaments
+ * 
+ * @author Random.
+ * */
 @Service
 @AllArgsConstructor
 public class WisebearServiceImpl implements WisebearService {
 
 	// we are going to need a repository here, probably
 	
+	private static final int FIRST_ROUND = 1;
+
 	@Override
 	public Info getInfo() {
 		return Info.builder()
-				.info("Doviandi setovia sagain")
+				.info("Dovie'andi se tovya sagain")
 				.build();
 	}
 
-	
-	/** Pseudocode for Backtracking algorithm
-	 * root(P): return the partial candidate at the root of the search tree.
-	 * reject(P,c): return true only if the partial candidate c is not worth completing.
-	 * accept(P,c): return true if c is a solution of P, and false otherwise.
-	 * first(P,c): generate the first extension of candidate c.
-	 * next(P,s): generate the next alternative extension of a candidate, after the extension s.
-  	 * output(P,c): use the solution c of P, as appropriate to the application.
+	/**
+	 * TODO: Explain algorithm
 	 * */
 	@Override
 	public Round calculateRound(List<Player> players, int nextRound) {
 		
+		Random random = new Random(System.currentTimeMillis());
+		
 		List<Match> matches = new ArrayList<>();
 		// order players by highest score
 		//maybe call orderPlayers if we do not want to alter the existing list
-		//TODO: only sort if they are after round 1, on round 1 we want to randomize the order
-		Collections.sort(players);
 		
-		List<Player> auxPlayers = new ArrayList<>();
-		auxPlayers.addAll(players);
+		if(nextRound == FIRST_ROUND) {
+			Collections.shuffle(players, random);
+		}
+		else {
+			Collections.sort(players);	
+		}
+
 		
-		for(int i = 0 ; i<players.size()-1; i ++) {
+		// divide players by points
+		List<List<Player>> playersByPoints = new ArrayList<>();
+		List<Player> playersWithSamepoints = new ArrayList<>();
+		for(int i = 0 ; i<players.size(); i ++) {
 			Player p = players.get(i);
-			if(auxPlayers.contains(p)) {
-				//player has not yet been put in a match
-				auxPlayers.remove(p);
-				Match m = null;
-				for(Player p2 : auxPlayers) {
-					// find an oponent player hasn't played against already
-					if(p.getOponents().contains(p)) {
-						continue;
-					}
-					else {
-						m = Match.builder()
-								.p1(p)
-								.p2(p2)
-								.table(i+1)
-								.build();
-						break;
-					}
-				}
-				if(m != null) {
-					//remove both players from being elected for another match this round
-					auxPlayers.remove(m.getP1());
-					auxPlayers.remove(m.getP2());
-				} else {
-					//algorithm is broken, we have to retry with floating
-					// TODO: think about this
-				}
-				matches.add(m);
-				
+			if((playersWithSamepoints.isEmpty()) || (playersWithSamepoints.get(0).getPoints() == p.getPoints()) ) {
+				playersWithSamepoints.add(p);
+			}
+			else {
+				playersByPoints.add(new ArrayList<Player>(playersWithSamepoints));
+				playersWithSamepoints = new ArrayList<>();
 			}
 		}
-		if(auxPlayers.size() != 0) {
-			// something has gone wrong, we need to redo
-			// TODO: same as before
+		List<Player> floatingPlayers = new ArrayList<>();
+		int tableNum = 1;
+		for(int i=0; i<playersByPoints.size(); i++) {
+			List<Player> samePoints = playersByPoints.get(i);
+			samePoints.addAll(floatingPlayers);
+			List<Player> auxPlayers = new ArrayList<>();
+			Collections.shuffle(samePoints, random);
+			auxPlayers.addAll(samePoints);
+			floatingPlayers = new ArrayList<>();
+			
+			for(int j=0;j<samePoints.size();j++) {
+				if(auxPlayers.size()==0) {
+					break;
+				}
+				Player p1 = samePoints.get(j);
+				// could not be there anymore, the player has already been processed
+				if(auxPlayers.contains(p1)) {
+					auxPlayers.remove(p1);
+					boolean foundOponent = false;
+					for(Player p2 : auxPlayers) {
+						if(p1.getOponents().contains(p2)) {
+							continue;
+						}
+						else {
+							Match m = Match.builder()
+									.p1(p1)
+									.p2(p2)
+									.table(tableNum)
+									.build();
+							matches.add(m);
+							tableNum++;
+							foundOponent = true;
+							auxPlayers.remove(p2);
+							p1.getOponents().add(p2);
+							p2.getOponents().add(p1);
+							break;
+						}
+					}
+					if(!foundOponent) {
+						// the player is a floating player and needs to be added to the next list
+						floatingPlayers.add(p1);
+					}
+				}
+			}
 		}
+		// by here we should have all the players matched it is possible that the system breaks, since it could leave floating players
+		// we will break rule#1 if that is the case, and the bottom players will play against each other again
+		// turns out, this function can also be called if we have a bye!
+		if(floatingPlayers.size()!=0) {
+			matchFloatingPlayers(matches, floatingPlayers, tableNum);
+		}
+
 		
-		Round round = Round.builder()
+		return Round.builder()
 				.matches(matches)
 				.roundNumber(nextRound)
 				.build();
-		return round;
-		
-		// separate players by points
-		
-		// float player down
-		
-		// pair players with table number
-		
-		// repeat if necessary 
-		// XXX: no clue what to change... maybe float up?
-		
-		
 	}
 	
-	private List<Player> orderPlayers(List<Player> players){
-		List<Player> orderedPlayers = new ArrayList<>();
-		orderedPlayers.addAll(players);
-		Collections.sort(orderedPlayers);
-		return orderedPlayers;
+	/**
+	 * we match the rest of the floating players, this function should never been called and it is a safeFail
+	 * for when the algorithm cannot cope with a correct round matching for the players
+	 * 
+	 * @since we can also have byes, turns out this function is called more than expected
+	 * */
+	private Player matchFloatingPlayers(List<Match> matches, List<Player> floatingPlayers, int tableNum) {
+		Player byePlayer = null;
+		if(floatingPlayers.size()%2 != 0) {
+			for(int i=0;i<floatingPlayers.size();i++) {
+				Player p1 = floatingPlayers.get(i);
+				if(!p1.isHadTournamentBye()) {
+					byePlayer = p1;
+					byePlayer.setHadTournamentBye(true);
+					break;
+					//XXX: if all of them had a bye, we are in trouble...
+					//TODO: calculate this at the BEGGINING of the algorith, that way you get it out of the way and not treat it as an afterthought.
+					// also means that again this function is only a safe fail and we can log it as such
+				}
+			}
+		} 
+		floatingPlayers.remove(byePlayer);
+		//this is the actual bad case, no choice but to pair them together again 
+		for(int i=0;i<floatingPlayers.size();i++) {
+			Player p1 = floatingPlayers.get(i);
+			i++;
+			Player p2 = floatingPlayers.get(i);
+			Match m = Match.builder()
+					.p1(p1)
+					.p2(p2)
+					.table(tableNum)
+					.build();
+			matches.add(m);
+			tableNum++;
+		}
+		return byePlayer;
 	}
-
 }

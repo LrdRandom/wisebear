@@ -14,4 +14,5 @@ public class Round {
 
 	private List<Match> matches;
 	private int roundNumber;
+	private Player byePlayer;
 }
