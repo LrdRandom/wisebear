@@ -142,7 +142,7 @@ public class WisebearServiceImpl implements WisebearService {
 					byePlayer.setHadTournamentBye(true);
 					break;
 					//XXX: if all of them had a bye, we are in trouble...
-					//TODO: calculate this at the BEGGINING of the algorith, that way you get it out of the way and not treat it as an afterthought.
+					//TODO: calculate this at the BEGINING of the algorithm, that way you get it out of the way and not treat it as an afterthought.
 					// also means that again this function is only a safe fail and we can log it as such
 				}
 			}

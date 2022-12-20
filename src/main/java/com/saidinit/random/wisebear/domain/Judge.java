@@ -1,9 +1,6 @@
 package com.saidinit.random.wisebear.domain;
 
 import java.util.List;
-
-import com.saidinit.random.wisebear.model.LanguageModel;
-
 import lombok.Builder;
 import lombok.Data;
 
